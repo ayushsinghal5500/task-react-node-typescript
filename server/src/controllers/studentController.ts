@@ -2,8 +2,9 @@
 import { Request, Response } from 'express';
 import Student, { IStudent } from '../models/Student';
 import { encryptData, decryptData } from '../utils/crypto';
+import jwt from 'jsonwebtoken';
 
-// Helper: encrypt an object’s string fields
+// Helpers
 const encryptObject = (data: Record<string, any>) => {
   const encrypted: Record<string, any> = {};
   for (const key in data) {
@@ -16,7 +17,6 @@ const encryptObject = (data: Record<string, any>) => {
   return encrypted;
 };
 
-// Helper: decrypt an object’s string fields
 const decryptObject = (data: Record<string, any>) => {
   const decrypted: Record<string, any> = {};
   for (const key in data) {
@@ -29,8 +29,7 @@ const decryptObject = (data: Record<string, any>) => {
   return decrypted;
 };
 
-// Create Student
-// Create Student
+// -------------------- Existing CRUD --------------------
 export const registerStudent = async (req: Request, res: Response) => {
   try {
     const encryptedFields = encryptObject(req.body);
@@ -38,7 +37,6 @@ export const registerStudent = async (req: Request, res: Response) => {
     await student.save();
     res.status(201).json({ message: 'Student registered successfully!' });
   } catch (err: any) {
-    // Handle validation errors
     if (err.name === 'ValidationError') {
       const errors: Record<string, string> = {};
       for (const key in err.errors) {
@@ -46,39 +44,40 @@ export const registerStudent = async (req: Request, res: Response) => {
       }
       return res.status(400).json({ error: 'Validation failed', details: errors });
     }
-
-    // Fallback for other errors
     res.status(500).json({ error: 'Internal Server Error', details: err.message });
   }
 };
 
-
-// Get all students
 export const getStudents = async (req: Request, res: Response) => {
   try {
     const students = await Student.find();
-
-    // हर student को decrypt करके भेजेंगे
-    const decryptedStudents = students.map((student) => {
-      const obj = student.toObject() as Record<string, any>;
-      return decryptObject(obj);
-    });
-
+    const decryptedStudents = students.map((student) =>
+      decryptObject(student.toObject())
+    );
     res.json(decryptedStudents);
   } catch (err: any) {
     console.error("❌ Error fetching students:", err);
     res.status(500).json({ error: err.message });
   }
 };
-// Update student
+
+export const getStudentById = async (req: Request, res: Response) => {
+  try {
+    const student = await Student.findById(req.params.id);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    res.json(decryptObject(student.toObject()));
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const updateStudent = async (req: Request, res: Response) => {
   try {
     const encryptedFields = encryptObject(req.body);
-    const updated = await Student.findByIdAndUpdate(
-      req.params.id,
-      encryptedFields,
-      { new: true }
-    );
+    const updated = await Student.findByIdAndUpdate(req.params.id, encryptedFields, {
+      new: true,
+    });
     if (!updated) return res.status(404).json({ message: 'Student not found' });
 
     res.json({ message: 'Student updated', student: decryptObject(updated.toObject()) });
@@ -87,7 +86,6 @@ export const updateStudent = async (req: Request, res: Response) => {
   }
 };
 
-// Delete student
 export const deleteStudent = async (req: Request, res: Response) => {
   try {
     const deleted = await Student.findByIdAndDelete(req.params.id);
@@ -96,5 +94,38 @@ export const deleteStudent = async (req: Request, res: Response) => {
     res.json({ message: 'Student deleted' });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+// -------------------- NEW: Login Student --------------------
+export const loginStudent = async (req: Request, res: Response) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password)
+      return res.status(400).json({ message: 'Email and password are required' });
+
+    const encryptedPassword = encryptData(password);
+
+    // Find student by email
+    const student = await Student.findOne({ email });
+    if (!student)
+      return res.status(401).json({ message: 'Invalid email or password' });
+
+    // Compare password
+    if (student.password !== encryptedPassword)
+      return res.status(401).json({ message: 'Invalid email or password' });
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { id: student._id, email: student.email },
+      process.env.JWT_SECRET || 'supersecretkey',
+      { expiresIn: '1d' }
+    );
+
+    res.json({ message: 'Login successful', token });
+  } catch (err: any) {
+    console.error("❌ Login error:", err);
+    res.status(500).json({ message: 'Internal Server Error', details: err.message });
   }
 };

@@ -7,13 +7,13 @@ import {
   MapPin,
   BookOpen,
   Save,
-  X,
-  ChevronLeft
+  ChevronLeft,
 } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
+import { updateStudent, getStudentById } from "../api/Api";
 
 // ✅ Validation schema
 const studentSchema = z.object({
@@ -29,18 +29,6 @@ const studentSchema = z.object({
 
 type StudentFormData = z.infer<typeof studentSchema>;
 
-// Mock student data - in a real app, this would come from an API
-const mockStudentData = {
-  fullName: "Alex Johnson",
-  email: "alex.johnson@example.com",
-  phoneNumber: "555-123-4567",
-  dateOfBirth: "2000-05-15",
-  gender: "male",
-  address: "123 University Ave, Campus Town, CA 94301",
-  courseEnrolled: "computer-science",
-  status: "Active" as const,
-};
-
 const StudentEditForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -55,47 +43,48 @@ const StudentEditForm: React.FC = () => {
     formState: { errors, isDirty },
   } = useForm<StudentFormData>({
     resolver: zodResolver(studentSchema),
-    defaultValues: mockStudentData
   });
 
-  // Initialize form with student data
+  // ✅ Fetch student by ID
   useEffect(() => {
-    // In a real app, you would fetch student data by ID here
-    if (!isNewStudent) {
-      // Fetch student data based on ID
-      console.log("Fetching student data for ID:", id);
-      reset(mockStudentData);
-    } else {
-      // Reset form for new student
-      reset({
-        fullName: "",
-        email: "",
-        phoneNumber: "",
-        dateOfBirth: "",
-        gender: "",
-        address: "",
-        courseEnrolled: "",
-        status: "Pending",
-      });
-    }
+    const fetchStudent = async () => {
+      if (!isNewStudent && id) {
+        try {
+          const res = await getStudentById(id);
+          reset(res.data); // API se jo data mile usse form fill
+        } catch (err) {
+          console.error("❌ Error fetching student:", err);
+        }
+      } else {
+        // Agar new student hai to empty form
+        reset({
+          fullName: "",
+          email: "",
+          phoneNumber: "",
+          dateOfBirth: "",
+          gender: "",
+          address: "",
+          courseEnrolled: "",
+          status: "Pending",
+        });
+      }
+    };
+
+    fetchStudent();
   }, [id, isNewStudent, reset]);
 
   // ✅ Submit function
   const onSubmit = async (data: StudentFormData) => {
     setLoading(true);
-    
-    console.log("📤 Data to save:", data);
-    
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log("✅ Student saved successfully");
+      if (!isNewStudent && id) {
+        await updateStudent(id, data);
+        console.log("✅ Student updated successfully");
+      }
       setShowSuccess(true);
-      
       setTimeout(() => {
         setShowSuccess(false);
-        navigate("/students"); // Redirect back to student list
+        navigate("/students");
       }, 2000);
     } catch (err) {
       console.error("❌ Save error:", err);
@@ -129,10 +118,7 @@ const StudentEditForm: React.FC = () => {
           {/* Success Message */}
           {showSuccess && (
             <div className="bg-green-100 text-green-700 p-4 border-b border-green-200 flex items-center">
-              <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-              Student {isNewStudent ? "added" : "updated"} successfully!
+              ✅ Student {isNewStudent ? "added" : "updated"} successfully!
             </div>
           )}
 
@@ -176,7 +162,9 @@ const StudentEditForm: React.FC = () => {
                     />
                   </div>
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.email.message}
+                    </p>
                   )}
                 </div>
 
@@ -195,7 +183,9 @@ const StudentEditForm: React.FC = () => {
                     />
                   </div>
                   {errors.phoneNumber && (
-                    <p className="mt-1 text-sm text-red-600">{errors.phoneNumber.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.phoneNumber.message}
+                    </p>
                   )}
                 </div>
 
@@ -213,7 +203,9 @@ const StudentEditForm: React.FC = () => {
                     />
                   </div>
                   {errors.dateOfBirth && (
-                    <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.dateOfBirth.message}
+                    </p>
                   )}
                 </div>
 
@@ -231,11 +223,15 @@ const StudentEditForm: React.FC = () => {
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="other">Other</option>
-                      <option value="prefer-not-to-say">Prefer not to say</option>
+                      <option value="prefer-not-to-say">
+                        Prefer not to say
+                      </option>
                     </select>
                   </div>
                   {errors.gender && (
-                    <p className="mt-1 text-sm text-red-600">{errors.gender.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.gender.message}
+                    </p>
                   )}
                 </div>
 
@@ -255,7 +251,9 @@ const StudentEditForm: React.FC = () => {
                     </select>
                   </div>
                   {errors.status && (
-                    <p className="mt-1 text-sm text-red-600">{errors.status.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.status.message}
+                    </p>
                   )}
                 </div>
 
@@ -271,7 +269,9 @@ const StudentEditForm: React.FC = () => {
                       {...register("courseEnrolled")}
                     >
                       <option value="">Select a course</option>
-                      <option value="computer-science">Computer Science</option>
+                      <option value="computer-science">
+                        Computer Science
+                      </option>
                       <option value="business">Business Administration</option>
                       <option value="engineering">Engineering</option>
                       <option value="arts">Arts & Humanities</option>
@@ -280,7 +280,9 @@ const StudentEditForm: React.FC = () => {
                     </select>
                   </div>
                   {errors.courseEnrolled && (
-                    <p className="mt-1 text-sm text-red-600">{errors.courseEnrolled.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.courseEnrolled.message}
+                    </p>
                   )}
                 </div>
 
@@ -299,7 +301,9 @@ const StudentEditForm: React.FC = () => {
                     />
                   </div>
                   {errors.address && (
-                    <p className="mt-1 text-sm text-red-600">{errors.address.message}</p>
+                    <p className="mt-1 text-sm text-red-600">
+                      {errors.address.message}
+                    </p>
                   )}
                 </div>
               </div>

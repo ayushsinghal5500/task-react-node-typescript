@@ -15,6 +15,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { registerStudent } from "../api/Api"; // <-- your API import
+import { useNavigate } from "react-router-dom";
 
 // ✅ Validation schema
 const studentSchema = z
@@ -40,6 +41,8 @@ const StudentRegistrationForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const {
     register,
@@ -79,6 +82,7 @@ const StudentRegistrationForm: React.FC = () => {
       console.log("✅ API Response data:", res.data);
 
       alert("Registration successful!");
+      navigate("/student");
       reset(); // clear form
     } catch (err: any) {
       // 🔍 Log full error object

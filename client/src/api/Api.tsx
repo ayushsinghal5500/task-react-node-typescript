@@ -1,7 +1,6 @@
 import axios from "axios";
 import { encryptData } from "../utils/crypto";
 
-// Create Axios instance
 const API = axios.create({
   baseURL: "http://localhost:5000/api",
   headers: {
@@ -10,35 +9,41 @@ const API = axios.create({
   },
 });
 
-// 🔹 Register student (encrypt only password)
+// 🔹 Register student
 export const registerStudent = (studentData: Record<string, string>) => {
-  const finalData: Record<string, string> = { ...studentData };
-
+  const finalData = { ...studentData };
   if (finalData.password) {
     finalData.password = encryptData(finalData.password);
   }
-
   return API.post("/register", finalData);
 };
 
 // 🔹 Get all students
-export const getStudents = () => {
-  return API.get("/students");
-};
+export const getStudents = () => API.get("/students");
 
-// 🔹 Delete a student by ID
-export const deleteStudent = (id: string) => {
-  return API.delete(`/student/${id}`);
-};
+// 🔹 Get single student by ID
+export const getStudentById = (id: string) => API.get(`/student/${id}`);
 
-// 🔹 Update a student by ID
-export const updateStudent = (id: string, studentData: Record<string, string>) => {
-  const finalData: Record<string, string> = { ...studentData };
+// 🔹 Delete a student
+export const deleteStudent = (id: string) => API.delete(`/student/${id}`);
 
-  // Agar password update kar rahe ho toh encrypt karke bhejna
+// 🔹 Update a student
+export const updateStudent = (
+  id: string,
+  studentData: Record<string, string>
+) => {
+  const finalData = { ...studentData };
   if (finalData.password) {
     finalData.password = encryptData(finalData.password);
   }
-
   return API.put(`/student/${id}`, finalData);
+};
+
+// 🔹 Login user
+export const loginUser = (credentials: Record<string, string>) => {
+  const finalData = { ...credentials };
+  if (finalData.password) {
+    finalData.password = encryptData(finalData.password);
+  }
+  return API.post("/login", finalData);
 };
