@@ -109,14 +109,3 @@ Frontend .env (Vite) should include:
 VITE_CLIENT_KEY=<frontend-encryption-key>
 🔹 License
 This project is licensed under MIT License.
-
-
----
-
-If you want, I can also make a **more “modern & professional” version** of this README that will **immediately impress anyone reading your repo**.  
-
-Do you want me to do that?
-
-
-No file chosenNo file chosen
-ChatGPT can make mistakes. Check important info. See Cookie Preferences.
