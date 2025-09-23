@@ -82,7 +82,7 @@ const StudentRegistrationForm: React.FC = () => {
       console.log("✅ API Response data:", res.data);
 
       alert("Registration successful!");
-      navigate("/student");
+      navigate("/students");
       reset(); // clear form
     } catch (err: any) {
       // 🔍 Log full error object

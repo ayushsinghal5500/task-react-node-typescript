@@ -46,32 +46,44 @@ const StudentEditForm: React.FC = () => {
   });
 
   // ✅ Fetch student by ID
-  useEffect(() => {
-    const fetchStudent = async () => {
-      if (!isNewStudent && id) {
-        try {
-          const res = await getStudentById(id);
-          reset(res.data); // API se jo data mile usse form fill
-        } catch (err) {
-          console.error("❌ Error fetching student:", err);
-        }
-      } else {
-        // Agar new student hai to empty form
-        reset({
-          fullName: "",
-          email: "",
-          phoneNumber: "",
-          dateOfBirth: "",
-          gender: "",
-          address: "",
-          courseEnrolled: "",
-          status: "Pending",
-        });
-      }
-    };
+ useEffect(() => {
+  const fetchStudent = async () => {
+    if (!isNewStudent && id) {
+      try {
+        const res = await getStudentById(id);
+        console.log("Fetched student data:", res.data);
 
-    fetchStudent();
-  }, [id, isNewStudent, reset]);
+        // 🔹 Map API fields to form schema fields
+        reset({
+          fullName: res.data.fullName || "",
+          email: res.data.email || "",
+          phoneNumber: res.data.phone || "",       // phone → phoneNumber
+          dateOfBirth: res.data.dob || "",         // dob → dateOfBirth
+          gender: res.data.gender || "",
+          address: res.data.address || "",
+          courseEnrolled: res.data.course || "",   // course → courseEnrolled
+          status: res.data.status || "Pending",    // agar status nahi aya toh default
+        });
+      } catch (err) {
+        console.error("❌ Error fetching student:", err);
+      }
+    } else {
+      reset({
+        fullName: "",
+        email: "",
+        phoneNumber: "",
+        dateOfBirth: "",
+        gender: "",
+        address: "",
+        courseEnrolled: "",
+        status: "Pending",
+      });
+    }
+  };
+
+  fetchStudent();
+}, [id, isNewStudent, reset]);
+
 
   // ✅ Submit function
   const onSubmit = async (data: StudentFormData) => {
@@ -79,7 +91,7 @@ const StudentEditForm: React.FC = () => {
     try {
       if (!isNewStudent && id) {
         await updateStudent(id, data);
-        console.log("✅ Student updated successfully");
+        alert("✅ Student updated successfully");
       }
       setShowSuccess(true);
       setTimeout(() => {
