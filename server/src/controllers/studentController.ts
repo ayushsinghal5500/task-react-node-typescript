@@ -129,3 +129,75 @@ export const loginStudent = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Internal Server Error', details: err.message });
   }
 };
+
+// -------------------- NEW: Change Password --------------------
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: 'Both old and new passwords are required' });
+    }
+
+    // Assuming JWT auth middleware sets req.user
+    const studentId = (req as any).user?.id;
+    if (!studentId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const student = await Student.findById(studentId);
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    // Verify old password
+    const encryptedOld = encryptData(oldPassword);
+    if (student.password !== encryptedOld) {
+      return res.status(401).json({ message: 'Old password is incorrect' });
+    }
+
+    // Update to new password
+    student.password = encryptData(newPassword);
+    await student.save();
+
+    res.json({ message: 'Password changed successfully' });
+  } catch (err: any) {
+    console.error('Change Password Error:', err);
+    res.status(500).json({ message: 'Internal Server Error', details: err.message });
+  }
+};
+// -------------------- NEW: Reset Password --------------------
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword, email } = req.body;
+
+    if (!token || !newPassword || !email) {
+      return res.status(400).json({ message: 'Token, email, and new password are required' });
+    }
+
+    // Verify token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretkey');
+    } catch (err: any) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(400).json({ message: 'Reset token has expired' });
+      }
+      return res.status(400).json({ message: 'Invalid token' });
+    }
+
+    // Check if token email matches request email
+    if (decoded.email !== email) {
+      return res.status(401).json({ message: 'Token email does not match' });
+    }
+
+    // Find the student by email
+    const student = await Student.findOne({ email });
+    if (!student) return res.status(404).json({ message: 'Student not found' });
+
+    // Update password
+    student.password = encryptData(newPassword);
+    await student.save();
+
+    res.json({ message: 'Password has been reset successfully' });
+  } catch (err: any) {
+    console.error('Reset Password Error:', err);
+    res.status(500).json({ message: 'Internal Server Error', details: err.message });
+  }
+};
